@@ -159,6 +159,17 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
                                 leadingIcon = { Icon(Icons.Default.Settings, null) },
                                 onClick = { menu = false; showSettings = true },
                             )
+                            HorizontalDivider()
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        "Версия ${BuildConfig.VERSION_NAME}", fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                },
+                                onClick = { menu = false },
+                                enabled = false,
+                            )
                         }
                     },
                 )
