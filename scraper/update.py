@@ -129,6 +129,7 @@ def main():
         print(f"На сайте недель: {len(jobs)}")
 
     changed = False
+    failed = 0
     for start, (end, url) in sorted(jobs.items()):
         wk = start.isoformat()
         if args.pdf:
@@ -138,6 +139,7 @@ def main():
                 data = get(quote_url(url))
             except Exception as e:  # noqa: BLE001
                 print(f"{wk}: не скачалось ({e})")
+                failed += 1
                 continue
         sha = hashlib.sha256(data).hexdigest()
         old = state["weeks"].get(wk)
@@ -166,6 +168,8 @@ def main():
     if changed or not os.path.exists(os.path.join(DATA, "index.json")):
         rebuild_index(state)
     print("Готово" + ("" if changed else " (новых данных нет)"))
+    if jobs and failed == len(jobs):
+        sys.exit("Ни один PDF не скачался — сайт колледжа недоступен?")
 
 
 if __name__ == "__main__":
