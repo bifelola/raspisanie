@@ -16,16 +16,34 @@ android {
         applicationId = "ru.mocomk.raspisanie"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // номер сборки GitHub Actions — каждая новая версия больше предыдущей
+        val build = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionCode = build
+        versionName = "1.0.$build"
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+    }
+
+    // Постоянный ключ: в GitHub Actions берётся из секретов, локально — из signing/.
+    // Один и тот же ключ нужен, чтобы обновления ставились поверх старой версии.
+    val keystorePath = System.getenv("KEYSTORE_FILE")
+        ?: rootProject.file("../signing/raspisanie.jks").takeIf { it.exists() }?.path
+    val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+    signingConfigs {
+        if (keystorePath != null && !keystorePassword.isNullOrEmpty()) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                keyAlias = "raspisanie"
+                keyPassword = keystorePassword
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            // подпись debug-ключом, чтобы APK можно было сразу поставить на телефон
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug") // без ключа — временная подпись
         }
     }
     compileOptions {

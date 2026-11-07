@@ -7,3 +7,7 @@ android/build/
 android/app/build/
 android/local.properties
 .idea/
+# ключ подписи и пароли — только локально и в секретах GitHub
+signing/
+*.jks
+*.keystore
