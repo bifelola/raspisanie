@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Расписание МосОМК</title>
+<meta name="description" content="Расписание занятий Мытищинского филиала МосОМК по группам, с архивом прошлых недель">
+<meta name="theme-color" content="#1f5f8b">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <button id="groupBtn" class="group-btn" aria-haspopup="dialog">
+    <span class="group-label">Группа</span>
+    <span id="groupName" class="group-name">—</span>
+  </button>
+  <div class="week-nav">
+    <button id="prevWeek" class="icon-btn" aria-label="Предыдущая неделя">‹</button>
+    <div class="week-title">
+      <div id="weekRange">…</div>
+      <div id="weekNote" class="muted small"></div>
+    </div>
+    <button id="nextWeek" class="icon-btn" aria-label="Следующая неделя">›</button>
+  </div>
+  <nav id="dayTabs" class="day-tabs" aria-label="Дни недели"></nav>
+</header>
+
+<main id="main">
+  <div id="status" class="status">Загрузка…</div>
+  <div id="days"></div>
+  <section id="scanBox" class="scan-box" hidden>
+    <h2>Оригинал из PDF</h2>
+    <p class="muted small">Расписание распознаётся автоматически со скана. Если что-то выглядит странно — сверьтесь с оригиналом. Нажмите на картинку, чтобы увеличить.</p>
+    <div id="scans"></div>
+  </section>
+  <footer class="foot">
+    <button id="toggleScan" class="link-btn">Показать оригинал</button>
+    <a id="pdfLink" class="link-btn" target="_blank" rel="noopener">PDF на сайте колледжа</a>
+    <div id="updated" class="muted small"></div>
+  </footer>
+</main>
+
+<dialog id="groupDialog" class="sheet">
+  <form method="dialog" class="sheet-inner">
+    <div class="sheet-head">
+      <input id="groupSearch" type="search" placeholder="Поиск группы, например 22 фо" autocomplete="off">
+      <button class="icon-btn" value="close" aria-label="Закрыть">✕</button>
+    </div>
+    <div id="groupList" class="group-list"></div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.log
+site/data/weeks/*.new/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+.idea/

@@ -1,0 +1,30 @@
+name: Собрать Android-приложение
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/android.yml"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+      - name: Сборка APK
+        working-directory: android
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          gradle assembleRelease --no-daemon -PscheduleBaseUrl="https://${OWNER}.github.io/${REPO}/"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: raspisanie-apk
+          path: android/app/build/outputs/apk/release/*.apk

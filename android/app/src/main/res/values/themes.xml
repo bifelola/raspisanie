@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.Raspisanie" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@color/bg</item>
+    </style>
+    <color name="bg">#F3F5F8</color>
+    <color name="brand">#1F5F8B</color>
+</resources>
