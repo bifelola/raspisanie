@@ -69,7 +69,7 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val n = NotificationCompat.Builder(ctx, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_fg)
+            .setSmallIcon(R.drawable.ic_launcher_mono)
             .setContentTitle(if (isNew) "Новое расписание: $group" else "Расписание изменилось: $group")
             .setContentText(range)
             .setContentIntent(pi)

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- одноцветный силуэт: тематические значки Android 13+ и иконка уведомлений -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF" android:fillType="evenOdd"
+        android:pathData="M39,34h30a7,7 0,0 1,7 7v30a7,7 0,0 1,-7 7h-30a7,7 0,0 1,-7 -7v-30a7,7 0,0 1,7 -7zM50.5,53h7v6.5h6.5v7h-6.5v6.5h-7v-6.5h-6.5v-7h6.5z" />
+    <path android:fillColor="#FFFFFF"
+        android:pathData="M42.5,27a2.5,2.5 0,0 1,2.5 2.5v4h-5v-4a2.5,2.5 0,0 1,2.5 -2.5zM65.5,27a2.5,2.5 0,0 1,2.5 2.5v4h-5v-4a2.5,2.5 0,0 1,2.5 -2.5z" />
+</vector>

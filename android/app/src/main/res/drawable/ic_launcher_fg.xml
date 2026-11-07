@@ -1,16 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- календарь со строками расписания, в безопасной зоне 108dp-иконки -->
+<!-- листок календаря с медицинским крестом (в безопасной зоне 66dp) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
+    <!-- тень -->
+    <path android:fillColor="#0B2A4A" android:fillAlpha="0.22"
+        android:pathData="M39,37.5h30a7,7 0,0 1,7 7v30a7,7 0,0 1,-7 7h-30a7,7 0,0 1,-7 -7v-30a7,7 0,0 1,7 -7z" />
+    <!-- листок -->
     <path android:fillColor="#FFFFFF"
-        android:pathData="M36,38h36a5,5 0,0 1,5 5v26a5,5 0,0 1,-5 5h-36a5,5 0,0 1,-5 -5v-26a5,5 0,0 1,5 -5z" />
-    <path android:fillColor="#CFE3F1"
-        android:pathData="M36,38h36a5,5 0,0 1,5 5v5h-46v-5a5,5 0,0 1,5 -5z" />
-    <path android:fillColor="#FFFFFF"
-        android:pathData="M41,33h4v9h-4zM63,33h4v9h-4z" />
-    <path android:fillColor="#1F5F8B"
-        android:pathData="M38,53h30a2,2 0,0 1,0 4h-30a2,2 0,0 1,0 -4z" />
-    <path android:fillColor="#7FB0D3"
-        android:pathData="M38,61h22a2,2 0,0 1,0 4h-22a2,2 0,0 1,0 -4zM38,68h26a1.5,1.5 0,0 1,0 3h-26a1.5,1.5 0,0 1,0 -3z" />
+        android:pathData="M39,34h30a7,7 0,0 1,7 7v30a7,7 0,0 1,-7 7h-30a7,7 0,0 1,-7 -7v-30a7,7 0,0 1,7 -7z" />
+    <!-- шапка календаря -->
+    <path android:pathData="M39,34h30a7,7 0,0 1,7 7v7h-44v-7a7,7 0,0 1,7 -7z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear"
+                android:startX="32" android:startY="0" android:endX="76" android:endY="0"
+                android:startColor="#FF8A65" android:endColor="#FF5C7A" />
+        </aapt:attr>
+    </path>
+    <!-- кольца -->
+    <path android:fillColor="#173B63"
+        android:pathData="M42.5,29a2.5,2.5 0,0 1,2.5 2.5v6a2.5,2.5 0,0 1,-5 0v-6a2.5,2.5 0,0 1,2.5 -2.5zM65.5,29a2.5,2.5 0,0 1,2.5 2.5v6a2.5,2.5 0,0 1,-5 0v-6a2.5,2.5 0,0 1,2.5 -2.5z" />
+    <!-- медицинский крест -->
+    <path android:fillColor="#12A594"
+        android:pathData="M52.3,53h3.4a1.8,1.8 0,0 1,1.8 1.8v16.4a1.8,1.8 0,0 1,-1.8 1.8h-3.4a1.8,1.8 0,0 1,-1.8 -1.8v-16.4a1.8,1.8 0,0 1,1.8 -1.8zM45.8,59.5h16.4a1.8,1.8 0,0 1,1.8 1.8v3.4a1.8,1.8 0,0 1,-1.8 1.8h-16.4a1.8,1.8 0,0 1,-1.8 -1.8v-3.4a1.8,1.8 0,0 1,1.8 -1.8z" />
 </vector>
