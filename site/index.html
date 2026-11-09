@@ -3,55 +3,123 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Расписание МосОМК</title>
-<meta name="description" content="Расписание занятий Мытищинского филиала МосОМК по группам, с архивом прошлых недель">
-<meta name="theme-color" content="#1f5f8b">
-<link rel="manifest" href="manifest.webmanifest">
+<title>Расписание МосОМК — Мытищи</title>
+<meta name="description" content="Расписание занятий Мытищинского филиала МосОМК: приложение для Android и веб-версия. Автообновление, архив недель, комментарии.">
+<meta name="theme-color" content="#1e6fd9">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="site.css">
 </head>
 <body>
-<header class="top">
-  <button id="groupBtn" class="group-btn" aria-haspopup="dialog">
-    <span class="group-label">Группа</span>
-    <span id="groupName" class="group-name">—</span>
-  </button>
-  <div class="week-nav">
-    <button id="prevWeek" class="icon-btn" aria-label="Предыдущая неделя">‹</button>
-    <div class="week-title">
-      <div id="weekRange">…</div>
-      <div id="weekNote" class="muted small"></div>
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="brand"><img src="icon.svg" alt=""> Расписание МосОМК · Мытищи</div>
+      <h1>Расписание группы — всегда под рукой</h1>
+      <p class="lead">Приложение само забирает новое расписание с сайта колледжа, распознаёт скан и показывает пары вашей группы. Прошлые недели сохраняются.</p>
+      <div class="cta">
+        <a id="dl" class="btn btn-hero" href="https://github.com/bifelola/raspisanie/releases/latest/download/raspisanie.apk">
+          <svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42l3.3 3.3V4a1 1 0 0 1 1-1zM5 19h14a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2z"/></svg>
+          <span>Скачать для Android<small id="dlMeta">APK · последняя версия</small></span>
+        </a>
+        <a id="web" class="btn btn-hero-2" href="app/">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>
+          <span>Открыть веб-версию<small>в браузере, без установки</small></span>
+        </a>
+      </div>
+      <div class="meta" id="heroMeta">Бесплатно · Android 8 и новее</div>
     </div>
-    <button id="nextWeek" class="icon-btn" aria-label="Следующая неделя">›</button>
+    <div class="phone" aria-hidden="true">
+      <div class="screen">
+        <div class="pbar"><span style="color:#5d6b7a">Группа</span><b>22 фо ▾</b></div>
+        <div class="card">
+          <h4>Понедельник <span style="float:right;color:#2e8b57">сегодня</span></h4>
+          <div class="row"><b>9:00</b><span>Анатомия и физиология<br><span style="color:#5d6b7a">каб. 13</span></span></div>
+          <div class="row"><b>10:40</b><span>УП. ПМ. 01<br><span style="color:#5d6b7a">каб. 14</span></span></div>
+          <div class="row"><b>12:40</b><span>История России<br><span style="color:#5d6b7a">каб. 6</span></span></div>
+          <div class="cm">💬 Аня: на завтра принести халат</div>
+        </div>
+        <div class="card" style="border-color:#e3e8ee">
+          <h4>Вторник</h4>
+          <div class="row"><b>9:00</b><span>Иностранный язык</span></div>
+        </div>
+      </div>
+    </div>
   </div>
-  <nav id="dayTabs" class="day-tabs" aria-label="Дни недели"></nav>
 </header>
 
-<main id="main">
-  <div id="status" class="status">Загрузка…</div>
-  <div id="days"></div>
-  <section id="scanBox" class="scan-box" hidden>
-    <h2>Оригинал из PDF</h2>
-    <p class="muted small">Расписание распознаётся автоматически со скана. Если что-то выглядит странно — сверьтесь с оригиналом. Нажмите на картинку, чтобы увеличить.</p>
-    <div id="scans"></div>
+<main class="wrap">
+  <section class="panel">
+    <h2>Что умеет</h2>
+    <div class="features">
+      <div class="feature"><div class="em">🔄</div><h3>Обновляется само</h3><p>Каждые пару часов проверяет сайт колледжа и присылает уведомление о новом расписании.</p></div>
+      <div class="feature"><div class="em">🗂️</div><h3>Архив недель</h3><p>Прошлые недели сохраняются и открываются даже без интернета.</p></div>
+      <div class="feature"><div class="em">💬</div><h3>Комментарии</h3><p>Под каждым днём можно написать, что было на парах, про перенос или домашку.</p></div>
+      <div class="feature"><div class="em">🧾</div><h3>Оригинал под рукой</h3><p>Если что-то распозналось странно — откройте скан из PDF колледжа.</p></div>
+    </div>
   </section>
-  <footer class="foot">
-    <button id="toggleScan" class="link-btn">Показать оригинал</button>
-    <a id="pdfLink" class="link-btn" target="_blank" rel="noopener">PDF на сайте колледжа</a>
-    <div id="updated" class="muted small"></div>
-  </footer>
+
+  <section class="panel">
+    <h2>Как установить APK</h2>
+    <ol class="steps">
+      <li>Нажмите «Скачать для Android» и откройте скачанный файл <b>raspisanie.apk</b>.</li>
+      <li>Если телефон спросит — разрешите установку из этого источника (браузера или «Файлов»).</li>
+      <li>Нажмите «Установить», откройте приложение и войдите через Google или по почте.</li>
+      <li>Новые версии ставятся поверх старой — данные и архив сохраняются.</li>
+    </ol>
+  </section>
+
+  <section class="panel" id="archive">
+    <h2>Все версии</h2>
+    <p class="muted small" style="margin-top:-6px">Новые версии появляются здесь автоматически после каждой сборки.</p>
+    <div id="versions" class="versions"><div class="muted">Загрузка списка версий…</div></div>
+    <button id="showAll" class="btn btn-ghost more" hidden>Показать все версии</button>
+  </section>
 </main>
 
-<dialog id="groupDialog" class="sheet">
-  <form method="dialog" class="sheet-inner">
-    <div class="sheet-head">
-      <input id="groupSearch" type="search" placeholder="Поиск группы, например 22 фо" autocomplete="off">
-      <button class="icon-btn" value="close" aria-label="Закрыть">✕</button>
-    </div>
-    <div id="groupList" class="group-list"></div>
-  </form>
-</dialog>
+<footer class="site wrap">
+  <a href="privacy.html">Политика конфиденциальности</a>
+  <a href="#" data-cookie-settings>Настройки cookies</a>
+  <a href="https://github.com/bifelola/raspisanie">Исходный код</a>
+  <a href="admin.html">Для администратора</a>
+</footer>
 
-<script src="app.js"></script>
+<script type="module">
+import { initCookieBanner, countVisit, count, loadReleases, fmtDate, fmtSize, esc } from "./common.js";
+
+initCookieBanner((v) => { if (v === "all") countVisit(); });
+countVisit();
+document.getElementById("dl").addEventListener("click", () => count("downloads"));
+document.getElementById("web").addEventListener("click", () => count("webOpens"));
+
+const box = document.getElementById("versions");
+const showAll = document.getElementById("showAll");
+const SHOW = 5;
+
+function render(list, all) {
+  box.innerHTML = (all ? list : list.slice(0, SHOW)).map((v, i) => `
+    <div class="ver">
+      <div class="info">
+        <div class="t">${esc(v.title)}${i === 0 ? '<span class="badge">новая</span>' : ""}</div>
+        <div class="d">${fmtDate(v.date)} · ${fmtSize(v.size)}</div>
+        ${v.notes ? `<div class="n">${esc(v.notes.split("\n")[0])}</div>` : ""}
+      </div>
+      <a class="btn ${i === 0 ? "btn-primary" : "btn-ghost"}" href="${esc(v.url)}" data-dl>Скачать</a>
+    </div>`).join("");
+  box.querySelectorAll("[data-dl]").forEach((a) => a.addEventListener("click", () => count("downloads")));
+  showAll.hidden = all || list.length <= SHOW;
+}
+
+loadReleases().then((list) => {
+  if (!list.length) { box.innerHTML = '<div class="muted">Версий пока нет — первая появится после ближайшей сборки.</div>'; return; }
+  const last = list[0];
+  document.getElementById("dl").href = last.url;
+  document.getElementById("dlMeta").textContent = `${last.title.replace("Версия ", "версия ")} · ${fmtSize(last.size)}`;
+  document.getElementById("heroMeta").textContent = `Бесплатно · Android 8 и новее · обновлено ${fmtDate(last.date)}`;
+  render(list, false);
+  showAll.onclick = () => render(list, true);
+}).catch(() => {
+  box.innerHTML = '<div class="muted">Не удалось загрузить список версий. Кнопка «Скачать для Android» всё равно скачает последнюю.</div>';
+});
+</script>
 </body>
 </html>

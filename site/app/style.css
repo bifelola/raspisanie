@@ -106,3 +106,14 @@ main { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; }
 .group-list button { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px 6px; cursor: pointer; }
 .group-list button.sel { background: var(--accent); border-color: var(--accent); color: #fff; }
 .group-list h3 { grid-column: 1 / -1; margin: 8px 0 0; font-size: 13px; color: var(--muted); font-weight: 600; }
+
+/* баннер cookies */
+.cookie { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 50; max-width: 720px; margin: 0 auto;
+  background: var(--card, #fff); color: inherit; border: 1px solid rgba(127,127,127,.25); border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25); padding: 16px; }
+.cookie p { margin: 0 0 12px; font-size: 14px; }
+.cookie a { color: #1e6fd9; }
+.cookie-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.cookie .btn { border: 0; border-radius: 12px; padding: 10px 16px; font: inherit; font-weight: 600; cursor: pointer; }
+.cookie .btn-primary { background: #1e6fd9; color: #fff; }
+.cookie .btn-ghost { background: rgba(127,127,127,.15); color: inherit; }

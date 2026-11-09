@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E6FD9"/>
+      <stop offset="1" stop-color="#12B3A0"/>
+    </linearGradient>
+    <linearGradient id="head" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FF8A65"/>
+      <stop offset="1" stop-color="#FF5C7A"/>
+    </linearGradient>
+  </defs>
+  <rect width="108" height="108" fill="url(#bg)"/>
+  <!-- тень -->
+  <rect x="32" y="37.5" width="44" height="44" rx="7" fill="#0B2A4A" fill-opacity="0.22"/>
+  <!-- листок -->
+  <rect x="32" y="34" width="44" height="44" rx="7" fill="#FFFFFF"/>
+  <path d="M39 34h30a7 7 0 0 1 7 7v7H32v-7a7 7 0 0 1 7-7z" fill="url(#head)"/>
+  <!-- кольца -->
+  <rect x="40" y="29" width="5" height="11" rx="2.5" fill="#173B63"/>
+  <rect x="63" y="29" width="5" height="11" rx="2.5" fill="#173B63"/>
+  <!-- медицинский крест -->
+  <rect x="50.5" y="53" width="7" height="20" rx="1.8" fill="#12A594"/>
+  <rect x="44" y="59.5" width="20" height="7" rx="1.8" fill="#12A594"/>
+</svg>

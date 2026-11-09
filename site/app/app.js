@@ -59,7 +59,7 @@ function relNote(w) {
 async function init() {
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   try {
-    index = await getJson("data/index.json");
+    index = await getJson("../data/index.json");
   } catch {
     $("status").textContent = "Не удалось загрузить данные. Проверьте интернет.";
     return;
@@ -144,7 +144,7 @@ async function render() {
   current = token;
   let data;
   try {
-    data = await getJson(`data/weeks/${w.start}/${slug}.json`);
+    data = await getJson(`../data/weeks/${w.start}/${slug}.json`);
   } catch {
     if (current === token) $("status").textContent = "Не удалось загрузить расписание.";
     return;
@@ -209,7 +209,7 @@ function drawWeek(w, data) {
     const img = document.createElement("img");
     img.loading = "lazy";
     img.alt = "Скан расписания";
-    img.src = `data/weeks/${w.start}/${f}`;
+    img.src = `../data/weeks/${w.start}/${f}`;
     const a = document.createElement("a");
     a.href = img.src;
     a.target = "_blank";

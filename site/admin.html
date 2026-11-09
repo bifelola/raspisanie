@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Статистика — Расписание МосОМК</title>
+<meta name="theme-color" content="#1e6fd9">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="wrap topnav"><a href="./">← На главную</a></div>
+<main class="wrap doc">
+  <section class="panel" id="login">
+    <h1>Статистика</h1>
+    <p class="muted">Страница для владельца и администраторов. Войдите тем же аккаунтом, что и в приложении.</p>
+    <div class="cta" style="margin-top:14px">
+      <button id="google" class="btn btn-primary">Войти через Google</button>
+    </div>
+    <details style="margin-top:14px">
+      <summary class="muted">Войти по почте и паролю</summary>
+      <form id="emailForm" style="display:grid;gap:10px;max-width:360px;margin-top:10px">
+        <input id="email" type="email" placeholder="Почта" autocomplete="username" required
+          style="padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font:inherit">
+        <input id="pass" type="password" placeholder="Пароль" autocomplete="current-password" required
+          style="padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--text);font:inherit">
+        <button class="btn btn-ghost">Войти</button>
+      </form>
+    </details>
+    <p id="err" class="notice" style="margin-top:14px" hidden></p>
+  </section>
+
+  <div id="dash" hidden>
+    <section class="panel">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+        <h1 style="margin:0">Статистика</h1>
+        <div class="small muted"><span id="who"></span> · <a href="#" id="logout">выйти</a></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Приложение</h2>
+      <div class="stats">
+        <div class="stat"><div class="v" id="sDownloads">—</div><div class="l">скачиваний APK всего</div></div>
+        <div class="stat"><div class="v" id="sLatest">—</div><div class="l" id="sLatestL">скачиваний последней версии</div></div>
+        <div class="stat"><div class="v" id="sUsers">—</div><div class="l">зарегистрировано</div></div>
+        <div class="stat"><div class="v" id="sNew">—</div><div class="l">новых за 7 дней</div></div>
+        <div class="stat"><div class="v" id="sComments">—</div><div class="l">комментариев</div></div>
+        <div class="stat"><div class="v" id="sNoAds">—</div><div class="l">без рекламы / админов</div></div>
+      </div>
+      <p class="small muted" style="margin-bottom:0">Скачивания считает GitHub — это точное число загрузок файла APK, включая скачивания по прямой ссылке.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Сайт за 14 дней</h2>
+      <div class="stats" style="margin-bottom:14px">
+        <div class="stat"><div class="v" id="tVisits">—</div><div class="l">посещений всего*</div></div>
+        <div class="stat"><div class="v" id="tDl">—</div><div class="l">нажатий «Скачать»</div></div>
+        <div class="stat"><div class="v" id="tWeb">—</div><div class="l">открытий веб-версии</div></div>
+      </div>
+      <div class="scroll-x"><table id="days"></table></div>
+      <p class="small muted" style="margin-bottom:0">* Посещения считаются только у тех, кто принял аналитические cookies, — один раз в день на человека.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Скачивания по версиям</h2>
+      <div class="scroll-x"><table id="vers"></table></div>
+    </section>
+
+    <section class="panel">
+      <h2>Пользователи по группам</h2>
+      <div class="scroll-x"><table id="groups"></table></div>
+      <p class="small muted" style="margin-bottom:0">Назначать админов и включать «без рекламы» можно в приложении: меню ⋮ → «Пользователи».</p>
+    </section>
+  </div>
+</main>
+
+<script type="module">
+import { firebaseConfig, OWNER_EMAIL } from "./firebase-config.js";
+import { loadReleases, fmtDate, esc } from "./common.js";
+
+const FB = "https://www.gstatic.com/firebasejs/10.14.1/";
+const $ = (id) => document.getElementById(id);
+const err = (t) => { $("err").textContent = t; $("err").hidden = !t; };
+const n = (x) => Number(x || 0).toLocaleString("ru-RU");
+
+if (!firebaseConfig) {
+  err("Сайт ещё не подключён к Firebase: заполните site/firebase-config.js.");
+  $("google").disabled = true;
+} else {
+  const [{ initializeApp }, A, F] = await Promise.all([
+    import(FB + "firebase-app.js"), import(FB + "firebase-auth.js"), import(FB + "firebase-firestore.js"),
+  ]);
+  const app = initializeApp(firebaseConfig);
+  const auth = A.getAuth(app);
+  const db = F.getFirestore(app);
+
+  $("google").onclick = () => A.signInWithPopup(auth, new A.GoogleAuthProvider()).catch(showAuthErr);
+  $("emailForm").onsubmit = (e) => {
+    e.preventDefault();
+    A.signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value).catch(showAuthErr);
+  };
+  $("logout").onclick = (e) => { e.preventDefault(); A.signOut(auth); };
+
+  function showAuthErr(e) {
+    const c = e?.code || "";
+    err(c.includes("popup-closed") ? "" :
+      c.includes("invalid-credential") || c.includes("wrong-password") ? "Неверная почта или пароль" :
+      c.includes("unauthorized-domain") ? "Этот адрес сайта не разрешён в Firebase (Authentication → Settings → Authorized domains)." :
+      "Не удалось войти: " + (e?.message || c));
+  }
+
+  A.onAuthStateChanged(auth, async (u) => {
+    $("dash").hidden = true; $("login").hidden = false;
+    if (!u) return;
+    let role = "user";
+    try {
+      const s = await F.getDoc(F.doc(db, "users", u.uid));
+      role = s.exists() ? s.data().role || "user" : "user";
+    } catch {}
+    const isOwner = u.email && u.email.toLowerCase() === OWNER_EMAIL && u.emailVerified;
+    if (!isOwner && role !== "admin" && role !== "owner") {
+      err(`Аккаунт ${u.email} не администратор. Статистика доступна только владельцу и админам.`);
+      return;
+    }
+    err("");
+    $("login").hidden = true; $("dash").hidden = false;
+    $("who").textContent = `${u.email} · ${isOwner || role === "owner" ? "владелец" : "админ"}`;
+    loadAll().catch((e) => err("Ошибка загрузки: " + e.message));
+  });
+
+  async function loadAll() {
+    // версии и скачивания — GitHub
+    loadReleases().then((list) => {
+      const total = list.reduce((s, v) => s + v.downloads, 0);
+      $("sDownloads").textContent = n(total);
+      if (list[0]) { $("sLatest").textContent = n(list[0].downloads); $("sLatestL").textContent = `скачиваний ${list[0].title.toLowerCase()}`; }
+      const max = Math.max(1, ...list.map((v) => v.downloads));
+      $("vers").innerHTML = `<tr><th>Версия</th><th>Дата</th><th class="num">Скачиваний</th><th class="bar-cell"></th></tr>` +
+        list.map((v) => `<tr><td>${esc(v.title)}</td><td>${fmtDate(v.date)}</td><td class="num">${n(v.downloads)}</td>
+          <td class="bar-cell"><div class="bar" style="width:${(v.downloads / max) * 100}%"></div></td></tr>`).join("");
+    }).catch(() => { $("vers").innerHTML = "<tr><td>Не удалось получить данные с GitHub</td></tr>"; });
+
+    // пользователи
+    const us = await F.getDocs(F.collection(db, "users"));
+    const users = us.docs.map((d) => d.data());
+    const weekAgo = Date.now() - 7 * 864e5;
+    $("sUsers").textContent = n(users.length);
+    $("sNew").textContent = n(users.filter((u) => u.created?.toMillis?.() > weekAgo).length);
+    $("sNoAds").textContent = `${n(users.filter((u) => u.noAds).length)} / ${n(users.filter((u) => u.role === "admin" || u.role === "owner").length)}`;
+    const byGroup = {};
+    users.forEach((u) => { const g = u.group || "не указана"; byGroup[g] = (byGroup[g] || 0) + 1; });
+    const rows = Object.entries(byGroup).sort((a, b) => b[1] - a[1]);
+    const gmax = Math.max(1, ...rows.map((r) => r[1]));
+    $("groups").innerHTML = `<tr><th>Группа</th><th class="num">Человек</th><th class="bar-cell"></th></tr>` +
+      rows.map(([g, c]) => `<tr><td>${esc(g)}</td><td class="num">${n(c)}</td>
+        <td class="bar-cell"><div class="bar" style="width:${(c / gmax) * 100}%"></div></td></tr>`).join("");
+
+    // комментарии
+    F.getCountFromServer(F.collection(db, "comments"))
+      .then((c) => { $("sComments").textContent = n(c.data().count); })
+      .catch(() => { $("sComments").textContent = "—"; });
+
+    // сайт по дням
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 864e5);
+      const p = (x) => String(x).padStart(2, "0");
+      days.push(`${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`);
+    }
+    const snaps = await Promise.all(days.map((d) => F.getDoc(F.doc(db, "stats", "d_" + d)).catch(() => null)));
+    const data = snaps.map((s) => (s && s.exists() ? s.data() : {}));
+    const sum = (k) => data.reduce((s, x) => s + (x[k] || 0), 0);
+    $("tVisits").textContent = n(sum("visits"));
+    $("tDl").textContent = n(sum("downloads"));
+    $("tWeb").textContent = n(sum("webOpens"));
+    $("days").innerHTML = `<tr><th>День</th><th class="num">Посещения</th><th class="num">«Скачать»</th><th class="num">Веб-версия</th></tr>` +
+      days.map((d, i) => `<tr><td>${new Date(d).toLocaleDateString("ru-RU", { day: "numeric", month: "short", weekday: "short" })}</td>
+        <td class="num">${n(data[i].visits)}</td><td class="num">${n(data[i].downloads)}</td><td class="num">${n(data[i].webOpens)}</td></tr>`)
+        .reverse().join("");
+  }
+}
+</script>
+</body>
+</html>

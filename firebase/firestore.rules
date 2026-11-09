@@ -73,6 +73,21 @@ service cloud.firestore {
       allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
     }
 
+    // ---- анонимная статистика сайта: только +1 к счётчику, читают админы ----
+    match /stats/{doc} {
+      function one(k) { return request.resource.data.get(k, 1) == 1; }
+      function inc(k) {
+        return !changed().hasAny([k]) || request.resource.data[k] == resource.data.get(k, 0) + 1;
+      }
+      allow read: if isAdmin();
+      allow create: if request.resource.data.keys().hasOnly(['visits', 'downloads', 'webOpens'])
+        && request.resource.data.size() == 1
+        && one('visits') && one('downloads') && one('webOpens');
+      allow update: if changed().hasOnly(['visits', 'downloads', 'webOpens'])
+        && changed().size() == 1
+        && inc('visits') && inc('downloads') && inc('webOpens');
+    }
+
     // ---- настройки рекламы ----
     match /config/{doc} {
       allow read: if true;
