@@ -51,4 +51,4 @@ jobs:
           V="1.0.${GITHUB_RUN_NUMBER}"
           cp android/app/build/outputs/apk/release/app-release.apk raspisanie.apk
           MSG=$(git log -1 --pretty=%s)
-          gh release create "v$V" raspisanie.apk             --title "Версия $V"             --notes "$MSG"             --latest
+          gh release create "v$V" raspisanie.apk --title "Версия $V" --notes "$MSG" --latest
