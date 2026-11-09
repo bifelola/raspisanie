@@ -143,3 +143,12 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .bar { height: 8px; border-radius: 4px; background: var(--brand); min-width: 2px; }
 .scroll-x { overflow-x: auto; }
 .notice { background: var(--surface-2); border-left: 4px solid var(--accent); padding: 12px 14px; border-radius: 10px; }
+
+/* поддержать проект */
+.support { display: grid; gap: 16px; align-items: center; grid-template-columns: 1fr; }
+@media (min-width: 760px) { .support { grid-template-columns: 1.4fr 1fr; } }
+.support-btns { display: flex; flex-direction: column; gap: 10px; }
+.support-btns .btn { justify-content: flex-start; }
+.btn-donate { background: linear-gradient(135deg, #ff7a59, #f5487f); color: #fff; }
+.btn-tg { background: #229ed9; color: #fff; }
+[hidden] { display: none !important; }

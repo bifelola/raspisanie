@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # нужна история и теги, чтобы собрать список изменений
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -50,5 +52,20 @@ jobs:
         run: |
           V="1.0.${GITHUB_RUN_NUMBER}"
           cp android/app/build/outputs/apk/release/app-release.apk raspisanie.apk
-          MSG=$(git log -1 --pretty=%s)
-          gh release create "v$V" raspisanie.apk --title "Версия $V" --notes "$MSG" --latest
+          PREV=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$PREV" ]; then
+            git log "$PREV..HEAD" --no-merges --pretty='- %s' -- android > notes.txt
+          fi
+          [ -s notes.txt ] || git log -1 --pretty='- %s' > notes.txt
+          gh release create "v$V" raspisanie.apk --title "Версия $V" --notes-file notes.txt --latest
+          echo "VERSION=$V" >> "$GITHUB_ENV"
+      - name: Пост в Telegram-канал
+        if: github.ref == 'refs/heads/main'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          export SITE_URL="https://${OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          export NOTES="$(cat notes.txt)"
+          python3 .github/scripts/telegram_post.py

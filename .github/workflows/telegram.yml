@@ -1,0 +1,32 @@
+name: Пост в Telegram
+
+# Ручной запуск: Actions → «Пост в Telegram» → Run workflow.
+# Пустой текст — повторить пост о последней версии; иначе — опубликовать свой текст.
+on:
+  workflow_dispatch:
+    inputs:
+      text:
+        description: "Текст поста (пусто — пост о последней версии)"
+        required: false
+        default: ""
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Отправить
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TEXT: ${{ inputs.text }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          export SITE_URL="https://${OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          if [ -z "$TEXT" ]; then
+            TAG=$(gh release view --json tagName -q .tagName)
+            export VERSION="${TAG#v}"
+            export NOTES="$(gh release view "$TAG" --json body -q .body)"
+          fi
+          python3 .github/scripts/telegram_post.py

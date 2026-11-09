@@ -71,6 +71,23 @@
     </ol>
   </section>
 
+  <section class="panel support" id="support" hidden>
+    <div>
+      <h2>Поддержать проект</h2>
+      <p class="muted" style="margin:0">Приложение бесплатное. Если оно вам помогает — можно поддержать развитие донатом или подписаться на канал с новостями об обновлениях.</p>
+    </div>
+    <div class="support-btns">
+      <a id="donate" class="btn btn-donate" target="_blank" rel="noopener" hidden>
+        <svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.3C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.1 4.3 2.4h2c.7-1.3 2.2-2.4 4.3-2.4 3.7 0 5.8 3.9 4.3 7.2C19.5 16.4 12 21 12 21z"/></svg>
+        <span>Задонатить<small>DonationAlerts</small></span>
+      </a>
+      <a id="tg" class="btn btn-tg" target="_blank" rel="noopener" hidden>
+        <svg class="ico" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.5 13.2l-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3z"/></svg>
+        <span>Канал в Telegram<small>новости об обновлениях</small></span>
+      </a>
+    </div>
+  </section>
+
   <section class="panel" id="archive">
     <h2>Все версии</h2>
     <p class="muted small" style="margin-top:-6px">Новые версии появляются здесь автоматически после каждой сборки.</p>
@@ -82,12 +99,21 @@
 <footer class="site wrap">
   <a href="privacy.html">Политика конфиденциальности</a>
   <a href="#" data-cookie-settings>Настройки cookies</a>
+  <a id="tgFoot" target="_blank" rel="noopener" hidden>Telegram-канал</a>
+  <a id="donateFoot" target="_blank" rel="noopener" hidden>Поддержать</a>
   <a href="https://github.com/bifelola/raspisanie">Исходный код</a>
   <a href="admin.html">Для администратора</a>
 </footer>
 
 <script type="module">
 import { initCookieBanner, countVisit, count, loadReleases, fmtDate, fmtSize, esc } from "./common.js";
+import { DONATE_URL, TELEGRAM_URL } from "./links.js";
+
+for (const [url, ids] of [[DONATE_URL, ["donate", "donateFoot"]], [TELEGRAM_URL, ["tg", "tgFoot"]]]) {
+  if (!url) continue;
+  for (const id of ids) { const a = document.getElementById(id); a.href = url; a.hidden = false; }
+  document.getElementById("support").hidden = false;
+}
 
 initCookieBanner((v) => { if (v === "all") countVisit(); });
 countVisit();
@@ -104,7 +130,7 @@ function render(list, all) {
       <div class="info">
         <div class="t">${esc(v.title)}${i === 0 ? '<span class="badge">новая</span>' : ""}</div>
         <div class="d">${fmtDate(v.date)} · ${fmtSize(v.size)}</div>
-        ${v.notes ? `<div class="n">${esc(v.notes.split("\n")[0])}</div>` : ""}
+        ${v.notes ? `<div class="n">${esc(v.notes.split("\n").map((l) => l.replace(/^[-•*]\s*/, "").trim()).filter(Boolean).slice(0, 3).join(" · "))}</div>` : ""}
       </div>
       <a class="btn ${i === 0 ? "btn-primary" : "btn-ghost"}" href="${esc(v.url)}" data-dl>Скачать</a>
     </div>`).join("");
