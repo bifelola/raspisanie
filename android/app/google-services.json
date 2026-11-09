@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "219185989306",
+    "project_id": "raspisanie-6e027",
+    "storage_bucket": "raspisanie-6e027.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:219185989306:android:57693936f6fe685833a483",
+        "android_client_info": {
+          "package_name": "ru.mocomk.raspisanie"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "219185989306-o5p5lcq887cq3kheob93q9bd4opo0p98.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ru.mocomk.raspisanie",
+            "certificate_hash": "8cb31acde776cc42f4cc53a13b3f2c7e9aa7e2a3"
+          }
+        },
+        {
+          "client_id": "219185989306-bj3b3q6ckq1ivtq2m0nu989qtd0a1pu5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCt9Uyw0PzZTs4BZH2WXdONv3OxJ1xpK6o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "219185989306-bj3b3q6ckq1ivtq2m0nu989qtd0a1pu5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
