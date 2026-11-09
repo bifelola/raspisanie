@@ -150,6 +150,7 @@ fun AuthScreen(acc: AccountViewModel) {
 
 @Composable
 fun PolicyDialog(onDismiss: () -> Unit) {
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Конфиденциальность") },
@@ -165,6 +166,11 @@ fun PolicyDialog(onDismiss: () -> Unit) {
             )
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Понятно") } },
+        dismissButton = {
+            TextButton(onClick = { runCatching { uri.openUri(BuildConfig.BASE_URL + "privacy.html") } }) {
+                Text("Полная политика")
+            }
+        },
     )
 }
 
