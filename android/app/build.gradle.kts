@@ -4,6 +4,14 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+// Firebase (вход, комментарии, админка) включается, только если рядом лежит google-services.json.
+// Без него приложение собирается и работает как раньше — без входа.
+val firebaseConfigured = file("google-services.json").exists()
+if (firebaseConfigured) apply(plugin = "com.google.gms.google-services")
+
+// Почта владельца: при входе с ней аккаунт сам получает роль «владелец» и может раздавать админки.
+val ownerEmail = (project.findProperty("ownerEmail") as String?).orEmpty().trim()
+
 val baseUrl = (project.findProperty("scheduleBaseUrl") as String?)
     ?.let { if (it.endsWith("/")) it else "$it/" }
     ?: "https://example.github.io/raspisanie/"
@@ -21,6 +29,7 @@ android {
         versionCode = build
         versionName = "1.0.$build"
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+        buildConfigField("String", "OWNER_EMAIL", "\"$ownerEmail\"")
     }
 
     // Постоянный ключ: в GitHub Actions берётся из секретов, локально — из signing/.
@@ -73,4 +82,16 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.work:work-runtime-ktx:2.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    // вход, комментарии, роли
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+
+    // реклама: Рекламная сеть Яндекса
+    implementation("com.yandex.android:mobileads:7.8.0")
 }

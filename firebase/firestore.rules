@@ -1,0 +1,82 @@
+rules_version = '2';
+
+// Правила базы Firestore для приложения «Расписание».
+// Вставляются в Firebase Console → Firestore Database → Правила (Rules) → «Опубликовать».
+// В строке ownerEmail укажите свою почту — это владелец, он раздаёт админки.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function ownerEmail() { return 'OWNER_EMAIL_HERE'; }
+
+    function signedIn() { return request.auth != null; }
+
+    function isOwner() {
+      return signedIn()
+        && request.auth.token.email == ownerEmail()
+        && request.auth.token.email_verified == true;
+    }
+
+    function myDoc() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+
+    function isAdmin() {
+      return isOwner()
+        || (signedIn() && exists(myDoc()) && get(myDoc()).data.role in ['admin', 'owner']);
+    }
+
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    // ---- пользователи ----
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      // свою анкету создаёт сам пользователь: только роль «user» и без отключения рекламы
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'noAds', 'group', 'created'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 60
+        && request.resource.data.noAds == false
+        && (request.resource.data.role == 'user'
+            || (request.resource.data.role == 'owner' && isOwner()));
+
+      allow update: if signedIn() && (
+        // сам себе — только имя и группу
+        (request.auth.uid == uid && changed().hasOnly(['name', 'group'])
+          && request.resource.data.name is string && request.resource.data.name.size() <= 60
+          && request.resource.data.group is string && request.resource.data.group.size() <= 30)
+        // владелец — роли и «без рекламы» (себя назначает владельцем по почте)
+        || (isOwner() && changed().hasOnly(['role', 'noAds'])
+          && request.resource.data.role in ['user', 'admin', 'owner']
+          && (request.resource.data.role != 'owner' || request.auth.uid == uid))
+        // админ — только «без рекламы» (подписка)
+        || (isAdmin() && changed().hasOnly(['noAds']) && request.resource.data.noAds is bool)
+      );
+
+      allow delete: if isOwner();
+    }
+
+    // ---- комментарии под днями ----
+    match /comments/{id} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['group', 'week', 'date', 'text', 'uid', 'name', 'created'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000
+        && request.resource.data.created == request.time;
+
+      // автор — свои, админ и владелец — любые
+      allow update: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin())
+        && changed().hasOnly(['text', 'edited', 'editedBy'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000;
+
+      allow delete: if signedIn() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    // ---- настройки рекламы ----
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

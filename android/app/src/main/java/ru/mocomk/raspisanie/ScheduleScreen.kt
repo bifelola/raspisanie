@@ -30,7 +30,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
@@ -59,6 +62,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +72,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -99,8 +105,21 @@ fun AppTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScheduleScreen(vm: ScheduleViewModel) {
+fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
     val s by vm.state.collectAsState()
+    val authState by acc.auth.collectAsState()
+    val me = (authState as? AuthState.SignedIn)?.profile
+    val ads by acc.ads.collectAsState()
+    val accError by acc.error.collectAsState()
+    val accInfo by acc.info.collectAsState()
+    val ctx = LocalContext.current
+    var showAccount by remember { mutableStateOf(false) }
+    var showUsers by remember { mutableStateOf(false) }
+    var showAds by remember { mutableStateOf(false) }
+    var showMyGroup by remember { mutableStateOf(false) }
+    var writeFor by remember { mutableStateOf<String?>(null) } // дата, к которой пишем комментарий
+    var editing by remember { mutableStateOf<Comment?>(null) }
+    var deleting by remember { mutableStateOf<Comment?>(null) }
     var showGroups by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
@@ -114,6 +133,23 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
         (0 until 6).map { st.plusDays(it.toLong()) }
     } ?: emptyList()
     val today = LocalDate.now()
+
+    // комментарии группы на открытую неделю — обновляются в реальном времени
+    var comments by remember { mutableStateOf<Map<String, List<Comment>>>(emptyMap()) }
+    val cGroup = s.group
+    val cWeek = week?.start
+    DisposableEffect(cGroup, cWeek, me?.uid) {
+        comments = emptyMap()
+        val reg = if (me != null && cGroup != null && cWeek != null)
+            acc.watchComments(cGroup, cWeek) { comments = it } else null
+        onDispose { reg?.remove() }
+    }
+    LaunchedEffect(accError) {
+        accError?.let { Toast.makeText(ctx, it, Toast.LENGTH_LONG).show(); acc.error.value = null }
+    }
+    LaunchedEffect(accInfo) {
+        accInfo?.let { Toast.makeText(ctx, it, Toast.LENGTH_SHORT).show(); acc.info.value = null }
+    }
 
     LaunchedEffect(s.week) {
         val i = days.indexOf(today)
@@ -159,6 +195,24 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
                                 leadingIcon = { Icon(Icons.Default.Settings, null) },
                                 onClick = { menu = false; showSettings = true },
                             )
+                            if (me != null) {
+                                HorizontalDivider()
+                                DropdownMenuItem(
+                                    text = { Text(me.name) },
+                                    leadingIcon = { Icon(Icons.Default.AccountCircle, null) },
+                                    onClick = { menu = false; showAccount = true },
+                                )
+                                if (me.isAdmin) DropdownMenuItem(
+                                    text = { Text("Пользователи") },
+                                    leadingIcon = { Icon(Icons.Default.Group, null) },
+                                    onClick = { menu = false; showUsers = true },
+                                )
+                                if (me.isAdmin) DropdownMenuItem(
+                                    text = { Text("Реклама") },
+                                    leadingIcon = { Icon(Icons.Default.Campaign, null) },
+                                    onClick = { menu = false; showAds = true },
+                                )
+                            }
                             HorizontalDivider()
                             DropdownMenuItem(
                                 text = {
@@ -190,6 +244,7 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
                 else HorizontalDivider()
             }
         },
+        bottomBar = { AdBanner(ads, hidden = me == null || me.adFree) },
     ) { pad ->
         Box(Modifier.padding(pad).fillMaxSize()) {
             val gw = s.week
@@ -199,7 +254,17 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
                     contentPadding = PaddingValues(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    itemsIndexed(days) { _, d -> DayCard(d, d == today, gw.days[d.toString()].orEmpty()) }
+                    itemsIndexed(days) { _, d ->
+                        val key = d.toString()
+                        DayCard(d, d == today, gw.days[key].orEmpty()) {
+                            if (me != null) CommentsSection(
+                                comments[key].orEmpty(), me,
+                                onAdd = { writeFor = key },
+                                onEdit = { editing = it },
+                                onDelete = { deleting = it },
+                            )
+                        }
+                    }
                     item {
                         Text(
                             (if (s.offline) "Нет связи — показаны сохранённые данные. " else "") +
@@ -223,6 +288,40 @@ fun ScheduleScreen(vm: ScheduleViewModel) {
             showGroups = false
             vm.selectGroup(it)
         }
+    }
+    if (me != null) {
+        writeFor?.let { date ->
+            val g = s.group
+            val w = week?.start
+            CommentDialog("Комментарий", "", onDismiss = { writeFor = null }) { text ->
+                writeFor = null
+                if (g != null && w != null) acc.addComment(g, w, date, text)
+            }
+        }
+        editing?.let { c ->
+            CommentDialog("Изменить комментарий", c.text, onDismiss = { editing = null }) { text ->
+                editing = null
+                acc.editComment(c.id, text)
+            }
+        }
+        deleting?.let { c ->
+            ConfirmDialog("Удалить комментарий «${c.text.take(60)}»?", "Удалить", onDismiss = { deleting = null }) {
+                deleting = null
+                acc.deleteComment(c.id)
+            }
+        }
+        if (showAccount) AccountDialog(acc, me, ads, onChangeGroup = { showAccount = false; showMyGroup = true }) {
+            showAccount = false
+        }
+        if (showMyGroup && s.index != null) {
+            GroupSheet(s.index!!.groups, me.group, onDismiss = { showMyGroup = false }) {
+                showMyGroup = false
+                acc.setGroup(it)
+                vm.selectGroup(it)
+            }
+        }
+        if (showUsers && me.isAdmin) UsersSheet(acc, me) { showUsers = false }
+        if (showAds && me.isAdmin) AdsDialog(acc, ads) { showAds = false }
     }
     if (showSettings) {
         var url by remember { mutableStateOf(vm.repo.prefs.baseUrl) }
@@ -284,7 +383,7 @@ private fun DayChip(d: LocalDate, isToday: Boolean, empty: Boolean, onClick: () 
 }
 
 @Composable
-private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>) {
+private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, footer: @Composable () -> Unit = {}) {
     val title = d.dayOfWeek.getDisplayName(TextStyle.FULL, RU).replaceFirstChar { it.uppercase() } +
         ", " + d.format(DateTimeFormatter.ofPattern("d MMMM", RU))
     Card(
@@ -328,6 +427,7 @@ private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>) {
                 }
             }
         }
+        footer()
     }
 }
 
@@ -358,7 +458,7 @@ private fun LessonView(l: Lesson) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun GroupSheet(groups: List<String>, selected: String?, onDismiss: () -> Unit, onPick: (String) -> Unit) {
+fun GroupSheet(groups: List<String>, selected: String?, onDismiss: () -> Unit, onPick: (String) -> Unit) {
     var q by remember { mutableStateOf("") }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
