@@ -33,6 +33,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Group
@@ -126,6 +129,11 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
     var showGroups by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
+    var showCollege by remember { mutableStateOf(false) }
+    var collegeRoom by remember { mutableStateOf<String?>(null) }
+    var showChanges by remember { mutableStateOf(false) }
+    var openChange by remember { mutableStateOf<Change?>(null) }
+    var showReminders by remember { mutableStateOf(false) }
     val uri = LocalUriHandler.current
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -181,6 +189,9 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
                         IconButton(onClick = { vm.refresh() }) { Icon(Icons.Default.Refresh, "Обновить") }
                     },
                     actions = {
+                        if (week != null) IconButton(onClick = { collegeRoom = null; showCollege = true }) {
+                            Icon(Icons.Default.Search, "Поиск по колледжу")
+                        }
                         IconButton(onClick = { menu = true }) { Icon(Icons.Default.MoreVert, "Меню") }
                         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                             val gw = s.week
@@ -193,6 +204,21 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
                                 text = { Text("PDF на сайте колледжа") },
                                 leadingIcon = { Icon(Icons.Default.PictureAsPdf, null) },
                                 onClick = { menu = false; uri.openUri(week!!.source) },
+                            )
+                            if (week != null) DropdownMenuItem(
+                                text = { Text("Преподаватели и кабинеты") },
+                                leadingIcon = { Icon(Icons.Default.Search, null) },
+                                onClick = { menu = false; collegeRoom = null; showCollege = true },
+                            )
+                            if (gw != null) DropdownMenuItem(
+                                text = { Text("История изменений" + if (gw.changes.isNotEmpty()) " (${gw.changes.size})" else "") },
+                                leadingIcon = { Icon(Icons.Default.History, null) },
+                                onClick = { menu = false; showChanges = true },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Напоминания о парах") },
+                                leadingIcon = { Icon(Icons.Default.NotificationsActive, null) },
+                                onClick = { menu = false; showReminders = true },
                             )
                             DropdownMenuItem(
                                 text = { Text("Адрес сервера") },
@@ -274,9 +300,14 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
                     contentPadding = PaddingValues(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
+                    val changes = latestChanges(gw)
                     itemsIndexed(days) { _, d ->
                         val key = d.toString()
-                        DayCard(d, d == today, gw.days[key].orEmpty(), now.toLocalTime()) {
+                        DayCard(
+                            d, d == today, gw.days[key].orEmpty(), now.toLocalTime(), changes[key].orEmpty(),
+                            onChange = { openChange = it },
+                            onRoom = { collegeRoom = canonRoom(it); showCollege = true },
+                        ) {
                             if (me != null) CommentsSection(
                                 comments[key].orEmpty(), me,
                                 onAdd = { writeFor = key },
@@ -343,6 +374,14 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
         if (showUsers && me.isAdmin) UsersSheet(acc, me) { showUsers = false }
         if (showAds && me.isAdmin) AdsDialog(acc, ads) { showAds = false }
     }
+    if (showCollege) week?.let { w ->
+        CollegeSheet(vm, w, collegeRoom) { showCollege = false; collegeRoom = null }
+    }
+    if (showChanges) s.week?.let { gw ->
+        ChangesSheet(gw, onPick = { openChange = it }) { showChanges = false }
+    }
+    openChange?.let { ChangeDialog(it) { openChange = null } }
+    if (showReminders) RemindersDialog(vm.repo.prefs, s.group) { showReminders = false }
     if (showSettings) {
         var url by remember { mutableStateOf(vm.repo.prefs.baseUrl) }
         AlertDialog(
@@ -403,7 +442,10 @@ private fun DayChip(d: LocalDate, isToday: Boolean, empty: Boolean, onClick: () 
 }
 
 @Composable
-private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, now: LocalTime, footer: @Composable () -> Unit = {}) {
+private fun DayCard(
+    d: LocalDate, isToday: Boolean, slots: List<Slot>, now: LocalTime, changes: Map<String, Change>,
+    onChange: (Change) -> Unit, onRoom: (String) -> Unit, footer: @Composable () -> Unit = {},
+) {
     val title = d.dayOfWeek.getDisplayName(TextStyle.FULL, RU).replaceFirstChar { it.uppercase() } +
         ", " + d.format(DateTimeFormatter.ofPattern("d MMMM", RU))
     Card(
@@ -414,19 +456,31 @@ private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, now: Loca
     ) {
         Row(Modifier.fillMaxWidth().padding(14.dp, 12.dp, 14.dp, 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
+            if (changes.isNotEmpty()) {
+                Text(
+                    "замены", color = Color.Black, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.background(ChangeYellow, RoundedCornerShape(50)).padding(horizontal = 8.dp, vertical = 2.dp),
+                )
+                if (isToday) Spacer(Modifier.width(6.dp))
+            }
             if (isToday) Text(
                 "сегодня", color = Color.White, fontSize = 12.sp,
                 modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(50))
                     .padding(horizontal = 8.dp, vertical = 2.dp),
             )
         }
-        if (slots.isEmpty()) {
+        if (slots.isEmpty() && changes.values.none { it.kind == "removed" }) {
             Text("Пар нет", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(14.dp, 0.dp, 14.dp, 14.dp))
         }
-        for (slot in slots) {
+        val times = slots.map { it.time }.toSet()
+        val removed = changes.values.filter { it.kind == "removed" && it.time !in times }
+        val entries: List<Any> = (slots + removed).sortedBy { (if (it is Slot) it.time else (it as Change).time).let { t -> Repository.parseTime(t) } }
+        for (e in entries) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            val (h, m) = slot.time.split(":").map { it.toInt() }
-            val start = LocalTime.of(h, m)
+            if (e is Change) { RemovedRow(e) { onChange(e) }; continue }
+            val slot = e as Slot
+            val start = Repository.parseTime(slot.time) ?: LocalTime.MIDNIGHT
+            val ch = changes[slot.time]?.takeIf { it.kind != "removed" }
             val end = start.plusMinutes(PAIR_MINUTES.toLong())
             val active = isToday && !now.isBefore(start.minusMinutes(10)) && now.isBefore(end)
             Row(
@@ -441,8 +495,9 @@ private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, now: Loca
                 Column(Modifier.weight(1f)) {
                     slot.lessons.forEachIndexed { i, l ->
                         if (i > 0) Spacer(Modifier.height(8.dp))
-                        LessonView(l)
+                        LessonView(l, onRoom)
                     }
+                    if (ch != null) { Spacer(Modifier.height(6.dp)); ChangeBadge(ch) { onChange(ch) } }
                 }
             }
         }
@@ -451,7 +506,7 @@ private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, now: Loca
 }
 
 @Composable
-private fun LessonView(l: Lesson) {
+private fun LessonView(l: Lesson, onRoom: (String) -> Unit) {
     val m = Regex("^(\\d)\\.\\s*").find(l.subject)
     val subject = if (m != null) l.subject.substring(m.range.last + 1) else l.subject
     Column {
@@ -467,11 +522,16 @@ private fun LessonView(l: Lesson) {
             }
             Text(subject, fontWeight = FontWeight.SemiBold)
         }
-        val meta = listOfNotNull(
-            l.room.takeIf { it.isNotBlank() }?.let { "каб. $it" },
-            l.teacher.takeIf { it.isNotBlank() },
-        ).joinToString(" · ")
-        if (meta.isNotEmpty()) Text(meta, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (l.room.isNotBlank() || l.teacher.isNotBlank()) Row {
+            if (l.room.isNotBlank()) Text(
+                "каб. ${l.room}", fontSize = 13.sp, color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { onRoom(l.room) },
+            )
+            if (l.teacher.isNotBlank()) Text(
+                (if (l.room.isNotBlank()) " · " else "") + l.teacher, fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

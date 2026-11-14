@@ -5,6 +5,7 @@
 """
 import argparse
 import datetime as dt
+import difflib
 import hashlib
 import html
 import json
@@ -68,6 +69,85 @@ def save_json(path, obj):
     os.replace(tmp, path)
 
 
+def _norm(s):
+    return re.sub(r"[\W_]+", "", (s or "").lower())
+
+
+def _same_items(a, b):
+    """Одинаковые ли пары. Мелкие расхождения распознавания (1–2 буквы) заменой не считаем."""
+    if len(a) != len(b):
+        return False
+    for x, y in zip(a, b):
+        for k in ("subject", "room", "teacher"):
+            p, q = _norm(x.get(k)), _norm(y.get(k))
+            if p == q:
+                continue
+            if k != "room" and p and q and difflib.SequenceMatcher(None, p, q).ratio() >= 0.85:
+                continue
+            return False
+    return True
+
+
+def _tkey(t):
+    try:
+        h, m = t.split(":")
+        return int(h) * 60 + int(m)
+    except ValueError:
+        return 0
+
+
+def diff_days(old, new, at):
+    """Замены между прошлой и новой версией недели: пары добавлены, отменены или изменены."""
+    out = []
+    for date in sorted(set(old) | set(new)):
+        o = {p["time"]: p["items"] for p in old.get(date, [])}
+        n = {p["time"]: p["items"] for p in new.get(date, [])}
+        for t in sorted(set(o) | set(n), key=_tkey):
+            if t not in n:
+                out.append({"at": at, "date": date, "time": t, "kind": "removed", "old": o[t]})
+            elif t not in o:
+                out.append({"at": at, "date": date, "time": t, "kind": "added", "new": n[t]})
+            elif not _same_items(o[t], n[t]):
+                out.append({"at": at, "date": date, "time": t, "kind": "changed", "old": o[t], "new": n[t]})
+    return out
+
+
+def canon_room(r):
+    """Один кабинет — одно название: «27, 27» -> «27», «спорт:ал», «с/зал» -> «Спортзал», «Акт, зал» -> «Актовый зал»."""
+    s = (r or "").strip()
+    toks = [t.strip() for t in re.split(r"[,;]", s) if t.strip()]
+    if toks and all(t.isdigit() for t in toks):
+        return ", ".join(dict.fromkeys(toks))
+    low = re.sub(r"[^а-яёa-z0-9]", "", s.lower())
+    if "акт" in low:
+        return "Актовый зал"
+    if "спор" in low or low in ("сзал", "зал") or low.startswith("сп"):
+        return "Спортзал"
+    return s
+
+
+def build_college(state):
+    """Справочник по колледжу на каждую неделю: кто, где и когда (для поиска преподавателей и кабинетов)."""
+    for wk, info in state["weeks"].items():
+        rows = []
+        for name, s in sorted(info["groups"].items()):
+            g = load_json(os.path.join(DATA, "weeks", wk, s + ".json"), None)
+            if not g:
+                continue
+            for date, pairs in sorted(g["days"].items()):
+                for p in pairs:
+                    for it in p["items"]:
+                        teacher = ", ".join(dict.fromkeys(
+                            t.strip() for t in (it.get("teacher") or "").split(",") if t.strip()))
+                        rows.append([date, p["time"], name, it.get("subject", ""),
+                                     canon_room(it.get("room", "")), teacher])
+        rows.sort(key=lambda r: (r[0], _tkey(r[1]), r[2]))
+        path = os.path.join(DATA, "college", wk + ".json")
+        obj = {"week": wk, "rows": rows}
+        if load_json(path, None) != obj:
+            save_json(path, obj)
+
+
 def process(pdf_path, start, end, source, ocr):
     from parse_pdf import parse_pdf, slug
     from textfix import Vocabulary
@@ -83,11 +163,17 @@ def process(pdf_path, start, end, source, ocr):
                     log=lambda s: print(s, flush=True))
     save_json(vpath, dict(vocab.counts.most_common(5000)))
     groups = {}
+    at = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
     for name, g in res.items():
         s = slug(name)
+        old = load_json(os.path.join(wdir, s + ".json"), None)
+        changes = (old.get("changes") or []) if old else []
+        if old:
+            changes = changes + diff_days(old.get("days", {}), g["days"], at)
         save_json(os.path.join(tmpdir, s + ".json"), {
             "group": name, "start": wk, "end": end.isoformat(),
             "source": source, "days": g["days"], "scans": g["scans"],
+            "changes": changes,
         })
         groups[name] = s
     shutil.rmtree(wdir, ignore_errors=True)
@@ -167,6 +253,7 @@ def main():
 
     if changed or not os.path.exists(os.path.join(DATA, "index.json")):
         rebuild_index(state)
+    build_college(state)
     print("Готово" + ("" if changed else " (новых данных нет)"))
     if jobs and failed == len(jobs):
         sys.exit("Ни один PDF не скачался — сайт колледжа недоступен?")

@@ -25,9 +25,14 @@
     <button id="nextWeek" class="icon-btn" aria-label="Следующая неделя">›</button>
   </div>
   <nav id="dayTabs" class="day-tabs" aria-label="Дни недели"></nav>
+  <button id="nowStrip" class="now-strip" hidden></button>
 </header>
 
 <main id="main">
+  <div class="tools">
+    <button id="openCollege" class="tool-btn">🔍 Преподаватели и кабинеты</button>
+    <button id="openHistory" class="tool-btn">🕘 История изменений<span id="chgCount"></span></button>
+  </div>
   <div id="status" class="status">Загрузка…</div>
   <div id="days"></div>
   <section id="scanBox" class="scan-box" hidden>
@@ -52,6 +57,32 @@
     </div>
     <div id="groupList" class="group-list"></div>
   </form>
+</dialog>
+
+<dialog id="infoDialog" class="sheet">
+  <form method="dialog" class="sheet-inner">
+    <div class="sheet-head">
+      <b id="infoTitle" class="sheet-title"></b>
+      <button class="icon-btn" value="close" aria-label="Закрыть">✕</button>
+    </div>
+    <div id="infoBody" class="info-body"></div>
+  </form>
+</dialog>
+
+<dialog id="collegeDialog" class="sheet big">
+  <div class="sheet-inner">
+    <div class="sheet-head">
+      <button id="cBack" class="icon-btn" aria-label="Назад" hidden>‹</button>
+      <div class="sheet-title"><b id="cTitle">Поиск по колледжу</b><div id="cSub" class="c-sub"></div></div>
+      <button id="cFav" class="icon-btn fav" aria-label="Избранное" hidden>☆</button>
+      <button id="cClose" class="icon-btn" aria-label="Закрыть">✕</button>
+    </div>
+    <div id="cTabs" class="c-tabs">
+      <button data-tab="t">Где преподаватель?</button>
+      <button data-tab="r">Свободные кабинеты</button>
+    </div>
+    <div id="cBody" class="info-body"></div>
+  </div>
 </dialog>
 
 <script src="app.js"></script>

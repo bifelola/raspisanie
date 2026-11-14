@@ -89,6 +89,9 @@ class ScheduleViewModel(app: Application) : AndroidViewModel(app) {
             val res = runCatching { repo.loadGroupWeek(w, g, preferCache = isPastWeek(w)) }
             res.onSuccess { r ->
                 _state.update { it.copy(loading = false, week = r?.value, offline = it.offline || (r?.fromCache == true && !isPastWeek(w))) }
+                // свежие данные — переставить напоминания и обновить виджет
+                Reminders.schedule(getApplication())
+                TodayWidget.refresh(getApplication())
             }.onFailure {
                 _state.update { it.copy(loading = false, week = null, message = "Не удалось загрузить расписание.") }
             }

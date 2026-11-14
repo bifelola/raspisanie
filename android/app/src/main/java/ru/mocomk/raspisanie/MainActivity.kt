@@ -24,6 +24,8 @@ class MainActivity : ComponentActivity() {
                 .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
         UpdateWorker.schedule(this)
+        Reminders.schedule(this)
+        TodayWidget.refresh(this)
         setContent {
             AppTheme {
                 val auth by account.auth.collectAsState()

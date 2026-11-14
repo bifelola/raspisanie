@@ -36,23 +36,32 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
 
         val seen = repo.prefs.seenUpdates
         val firstRun = seen.length() == 0
-        val fresh = mutableListOf<Pair<WeekInfo, Boolean>>() // неделя, новая ли
+        val fresh = mutableListOf<Triple<WeekInfo, Boolean, String>>() // неделя, новая ли, прошлая отметка
         for (w in index.weeks) {
             if (group !in w.groups) continue
             val prev = seen.optString(w.start, "")
             if (prev != w.updated) {
-                if (!firstRun && LocalDate.parse(w.end) >= LocalDate.now()) fresh += w to prev.isEmpty()
+                if (!firstRun && LocalDate.parse(w.end) >= LocalDate.now()) fresh += Triple(w, prev.isEmpty(), prev)
                 seen.put(w.start, w.updated)
             }
         }
         repo.prefs.seenUpdates = seen
         repo.saveArchive(index, group)
 
-        for ((w, isNew) in fresh) notify(w, group, isNew)
+        for ((w, isNew, prev) in fresh) {
+            // что именно поменялось — из списка замен, который считает сервер
+            val lines = if (isNew) emptyList() else runCatching { repo.loadGroupWeek(w, group)?.value }.getOrNull()
+                ?.changes.orEmpty().filter { it.at > prev }
+                .sortedWith(compareBy({ it.date }, { Repository.parseTime(it.time) }))
+                .map { "${changeWhen(it)} — ${describeChange(it)}" }
+            notify(w, group, isNew, lines)
+        }
+        Reminders.schedule(applicationContext)
+        TodayWidget.refresh(applicationContext)
         return Result.success()
     }
 
-    private fun notify(w: WeekInfo, group: String, isNew: Boolean) {
+    private fun notify(w: WeekInfo, group: String, isNew: Boolean, lines: List<String>) {
         val ctx = applicationContext
         if (Build.VERSION.SDK_INT >= 33 &&
             ContextCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS)
@@ -68,10 +77,18 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
             ctx, 0, Intent(ctx, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val n = NotificationCompat.Builder(ctx, CHANNEL)
+        val b = NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_launcher_mono)
-            .setContentTitle(if (isNew) "Новое расписание: $group" else "Расписание изменилось: $group")
-            .setContentText(range)
+            .setContentTitle(when {
+                isNew -> "Новое расписание: $group"
+                lines.isNotEmpty() -> "Замены в расписании: $group"
+                else -> "Расписание изменилось: $group"
+            })
+            .setContentText(lines.firstOrNull() ?: range)
+        if (lines.isNotEmpty()) b.setStyle(NotificationCompat.BigTextStyle().bigText(
+            lines.take(8).joinToString(NL) + if (lines.size > 8) "$NL…и ещё ${lines.size - 8}" else ""
+        ))
+        val n = b
             .setContentIntent(pi)
             .setAutoCancel(true)
             .build()
@@ -80,6 +97,7 @@ class UpdateWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx
 
     companion object {
         private const val CHANNEL = "schedule"
+        private const val NL = "\n"
 
         fun schedule(ctx: Context) {
             val req = PeriodicWorkRequestBuilder<UpdateWorker>(4, TimeUnit.HOURS)

@@ -23,6 +23,16 @@ data class Lesson(val subject: String, val room: String, val teacher: String)
 
 data class Slot(val time: String, val lessons: List<Lesson>)
 
+/** Замена в расписании: kind = changed / added / removed; at — когда колледж её внёс. */
+data class Change(
+    val at: String,
+    val date: String,
+    val time: String,
+    val kind: String,
+    val old: List<Lesson>,
+    val new: List<Lesson>,
+)
+
 data class GroupWeek(
     val group: String,
     val start: String,
@@ -30,6 +40,17 @@ data class GroupWeek(
     val source: String,
     val days: Map<String, List<Slot>>,
     val scans: List<String>,
+    val changes: List<Change> = emptyList(),
+)
+
+/** Строка справочника по колледжу: кто, где и когда. */
+data class CollegeRow(
+    val date: String,
+    val time: String,
+    val group: String,
+    val subject: String,
+    val room: String,
+    val teacher: String,
 )
 
 class Loaded<T>(val value: T, val fromCache: Boolean)
@@ -45,6 +66,16 @@ class Prefs(context: Context) {
     var baseUrl: String
         get() = sp.getString("baseUrl", null) ?: BuildConfig.BASE_URL
         set(v) = sp.edit().putString("baseUrl", if (v.endsWith("/")) v else "$v/").apply()
+
+    /** За сколько минут напоминать о паре (0 — не напоминать). */
+    var remindMinutes: Int
+        get() = sp.getInt("remind", 10)
+        set(v) = sp.edit().putInt("remind", v).apply()
+
+    /** Избранные преподаватели. */
+    var favorites: Set<String>
+        get() = sp.getStringSet("fav", emptySet())!!.toSet()
+        set(v) = sp.edit().putStringSet("fav", v).apply()
 
     /** Отметки "неделя -> время обновления", о которых уже сообщили. */
     var seenUpdates: JSONObject
@@ -139,6 +170,19 @@ class Repository(private val context: Context) {
         }
     }
 
+    /** Сохранённая на телефоне копия файла (для виджета и напоминаний, без интернета). */
+    fun cached(path: String): String? = cacheFile(path).takeIf { it.exists() }?.let { runCatching { it.readText() }.getOrNull() }
+
+    /** Справочник по колледжу на неделю. */
+    suspend fun loadCollege(week: WeekInfo, preferCache: Boolean = false): List<CollegeRow> {
+        val raw = fetch("college/${week.start}.json", preferCache)
+        val a = JSONObject(raw.value).optJSONArray("rows") ?: return emptyList()
+        return (0 until a.length()).map { i ->
+            val r = a.getJSONArray(i)
+            CollegeRow(r.optString(0), r.optString(1), r.optString(2), r.optString(3), r.optString(4), r.optString(5))
+        }
+    }
+
     fun scanUrl(week: GroupWeek, file: String) = prefs.baseUrl + "data/weeks/${week.start}/$file"
 
     companion object {
@@ -175,11 +219,36 @@ class Repository(private val context: Context) {
                 }
             }
             val sc = o.optJSONArray("scans")
+            val ch = o.optJSONArray("changes")
+            val changes = if (ch == null) emptyList() else (0 until ch.length()).map { i ->
+                val c = ch.getJSONObject(i)
+                Change(
+                    c.optString("at"), c.optString("date"), c.optString("time"), c.optString("kind"),
+                    lessons(c.optJSONArray("old")), lessons(c.optJSONArray("new")),
+                )
+            }
             return GroupWeek(
                 o.getString("group"), o.getString("start"), o.getString("end"),
                 o.optString("source"), days,
                 if (sc == null) emptyList() else (0 until sc.length()).map { sc.getString(it) },
+                changes,
             )
         }
+
+        private fun lessons(a: org.json.JSONArray?): List<Lesson> =
+            if (a == null) emptyList() else (0 until a.length()).map { j ->
+                val it = a.getJSONObject(j)
+                Lesson(it.optString("subject"), it.optString("room"), it.optString("teacher"))
+            }
+
+        /** Время начала пары "9:00" -> LocalTime. */
+        fun parseTime(t: String): java.time.LocalTime? =
+            runCatching { java.time.LocalTime.parse(t.trim().padStart(5, '0')) }.getOrNull()
+
+        /** Название предмета без пометки подгруппы "1. ". */
+        fun cleanSubject(s: String) = s.replace(Regex("""^\d\.\s*"""), "")
+
+        /** Номер подгруппы из "1. Предмет" или null. */
+        fun subgroup(s: String) = Regex("""^(\d)\.\s*""").find(s)?.groupValues?.get(1)
     }
 }

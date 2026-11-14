@@ -1,5 +1,5 @@
 // Офлайн-режим: статика из кэша, данные — сначала из сети, при ошибке из кэша.
-const CACHE = "raspisanie-v2";
+const CACHE = "raspisanie-v3";
 const STATIC = ["./", "index.html", "style.css", "app.js", "icon.svg", "manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

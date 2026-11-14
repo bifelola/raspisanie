@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Расписание</string>
+    <string name="widget_label">Расписание: сегодня</string>
+    <string name="widget_desc">Текущая и следующая пара с кабинетом и все пары на день</string>
 </resources>
