@@ -54,7 +54,7 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk raspisanie.apk
           PREV=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -n "$PREV" ]; then
-            git log "$PREV..HEAD" --no-merges --pretty='- %s' -- android > notes.txt
+            git log "$PREV..HEAD" --no-merges --format='%x1e%s%x1f%b' -- android | python3 .github/scripts/changelog.py > notes.txt
           fi
           [ -s notes.txt ] || git log -1 --pretty='- %s' > notes.txt
           gh release create "v$V" raspisanie.apk --title "Версия $V" --notes-file notes.txt --latest

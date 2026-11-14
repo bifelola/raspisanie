@@ -32,6 +32,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Campaign
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.ChevronRight
@@ -89,7 +91,8 @@ import java.util.Locale
 private val RU = Locale.forLanguageTag("ru")
 private val Brand = Color(0xFF1F5F8B)
 private val TodayGreen = Color(0xFF2E8B57)
-private const val PAIR_MINUTES = 90
+private const val TELEGRAM_URL = "https://t.me/msomk11"
+private const val DONATE_URL = "https://dalink.to/bifelola"
 
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
@@ -133,6 +136,7 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
         (0 until 6).map { st.plusDays(it.toLong()) }
     } ?: emptyList()
     val today = LocalDate.now()
+    val now = rememberNow()
 
     // комментарии группы на открытую неделю — обновляются в реальном времени
     var comments by remember { mutableStateOf<Map<String, List<Comment>>>(emptyMap()) }
@@ -215,6 +219,17 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
                             }
                             HorizontalDivider()
                             DropdownMenuItem(
+                                text = { Text("Канал с новостями") },
+                                leadingIcon = { Icon(Icons.Default.Send, null) },
+                                onClick = { menu = false; runCatching { uri.openUri(TELEGRAM_URL) } },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Поддержать проект") },
+                                leadingIcon = { Icon(Icons.Default.Favorite, null) },
+                                onClick = { menu = false; runCatching { uri.openUri(DONATE_URL) } },
+                            )
+                            HorizontalDivider()
+                            DropdownMenuItem(
                                 text = {
                                     Text(
                                         "Версия ${BuildConfig.VERSION_NAME}", fontSize = 13.sp,
@@ -240,6 +255,11 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
                         }
                     }
                 }
+                val nowInfo = s.week?.let { findNow(it, now) }
+                if (nowInfo != null) NowStrip(nowInfo, now) {
+                    val i = days.indexOf(nowInfo.date)
+                    if (i >= 0) scope.launch { listState.animateScrollToItem(i) }
+                }
                 if (s.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 else HorizontalDivider()
             }
@@ -256,7 +276,7 @@ fun ScheduleScreen(vm: ScheduleViewModel, acc: AccountViewModel) {
                 ) {
                     itemsIndexed(days) { _, d ->
                         val key = d.toString()
-                        DayCard(d, d == today, gw.days[key].orEmpty()) {
+                        DayCard(d, d == today, gw.days[key].orEmpty(), now.toLocalTime()) {
                             if (me != null) CommentsSection(
                                 comments[key].orEmpty(), me,
                                 onAdd = { writeFor = key },
@@ -383,7 +403,7 @@ private fun DayChip(d: LocalDate, isToday: Boolean, empty: Boolean, onClick: () 
 }
 
 @Composable
-private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, footer: @Composable () -> Unit = {}) {
+private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, now: LocalTime, footer: @Composable () -> Unit = {}) {
     val title = d.dayOfWeek.getDisplayName(TextStyle.FULL, RU).replaceFirstChar { it.uppercase() } +
         ", " + d.format(DateTimeFormatter.ofPattern("d MMMM", RU))
     Card(
@@ -403,7 +423,6 @@ private fun DayCard(d: LocalDate, isToday: Boolean, slots: List<Slot>, footer: @
         if (slots.isEmpty()) {
             Text("Пар нет", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(14.dp, 0.dp, 14.dp, 14.dp))
         }
-        val now = LocalTime.now()
         for (slot in slots) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             val (h, m) = slot.time.split(":").map { it.toInt() }
